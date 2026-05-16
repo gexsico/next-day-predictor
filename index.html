@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Next Day Predictor 🔮</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Permanent+Marker&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#0a0a0f; --card:#12121a; --accent:#ff3c3c; --gold:#ffd700; --cyan:#00ffff; --text:#f0f0f0; --muted:#666; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'Space Mono',monospace; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; overflow-x:hidden; }
+  body::before { content:''; position:fixed; inset:0; background-image: radial-gradient(1px 1px at 10% 20%,#fff,transparent), radial-gradient(1px 1px at 30% 70%,#fff,transparent), radial-gradient(1px 1px at 50% 15%,#fff,transparent), radial-gradient(1px 1px at 70% 80%,#fff,transparent), radial-gradient(1px 1px at 85% 40%,#fff,transparent), radial-gradient(1px 1px at 20% 50%,rgba(255,255,255,.4),transparent), radial-gradient(1px 1px at 60% 55%,rgba(255,255,255,.4),transparent); pointer-events:none; animation:twinkle 3s ease-in-out infinite alternate; }
+  @keyframes twinkle{0%{opacity:.5}100%{opacity:1}}
+  .box { width:100%; max-width:580px; position:relative; z-index:1; }
+  .screen { display:none; }
+  .screen.active { display:block; animation:popUp .5s ease both; }
+  @keyframes popUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+  .header { text-align:center; margin-bottom:36px; }
+  .badge { display:inline-block; background:var(--accent); font-size:9px; letter-spacing:3px; padding:5px 12px; text-transform:uppercase; margin-bottom:14px; }
+  .title { font-family:'Bebas Neue',sans-serif; font-size:clamp(52px,14vw,96px); line-height:.9; background:linear-gradient(135deg,#fff 0%,var(--gold) 50%,var(--accent) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; letter-spacing:3px; }
+  .sub { font-size:11px; color:var(--muted); margin-top:12px; letter-spacing:1px; }
+  .card { background:var(--card); border:1px solid #2a2a3a; padding:36px; border-radius:4px; }
+  .qlabel { font-size:11px; letter-spacing:3px; color:var(--gold); text-transform:uppercase; margin-bottom:20px; }
+  .days-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:10px; margin-bottom:24px; }
+  .day-btn { background:#0d0d14; border:1px solid #2a2a3a; color:var(--text); font-family:'Space Mono',monospace; font-size:13px; padding:14px 10px; cursor:pointer; transition:all .2s; text-align:center; border-radius:2px; }
+  .day-btn:hover { border-color:var(--cyan); color:var(--cyan); transform:translateY(-2px); }
+  .day-btn.selected { border-color:var(--accent); color:var(--accent); background:rgba(255,60,60,.08); }
+  .go-btn { width:100%; background:var(--accent); color:#fff; border:none; padding:18px; font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:4px; cursor:pointer; transition:all .2s; opacity:.4; pointer-events:none; }
+  .go-btn.ready { opacity:1; pointer-events:all; }
+  .go-btn.ready:hover { background:#ff5555; transform:translateY(-2px); }
+  .loader-wrap { background:var(--card); border:1px solid #2a2a3a; border-radius:4px; padding:48px 36px; text-align:center; }
+  .spin-icon { font-size:52px; display:block; margin-bottom:28px; animation:spin 1.2s linear infinite; }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .step-text { font-size:15px; color:var(--cyan); font-weight:700; letter-spacing:1px; min-height:30px; margin-bottom:20px; }
+  .bar-track { background:#1a1a2a; height:5px; border-radius:3px; overflow:hidden; margin-bottom:8px; }
+  .bar-fill { height:100%; background:linear-gradient(90deg,#9d00ff,var(--accent),var(--gold)); width:0%; transition:width .6s ease; }
+  .pct-text { font-size:11px; color:var(--muted); letter-spacing:2px; }
+  .result-card { background:linear-gradient(135deg,#0f0f1a,#1a0f0f); border:1px solid var(--gold); border-radius:4px; padding:44px 36px; text-align:center; position:relative; overflow:hidden; }
+  .result-card::before { content:''; position:absolute; top:0;left:0;right:0; height:3px; background:linear-gradient(90deg,#9d00ff,var(--accent),var(--gold),var(--cyan)); }
+  .result-stamp { font-family:'Permanent Marker',cursive; font-size:13px; color:var(--gold); letter-spacing:2px; margin-bottom:10px; }
+  .result-label { font-size:12px; letter-spacing:4px; color:var(--muted); text-transform:uppercase; margin-bottom:6px; }
+  .result-day { font-family:'Bebas Neue',sans-serif; font-size:clamp(64px,18vw,110px); letter-spacing:4px; background:linear-gradient(135deg,#fff,var(--gold)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; line-height:1; margin:8px 0 16px; }
+  .result-msg { font-size:13px; color:var(--muted); letter-spacing:1px; margin-bottom:28px; line-height:1.7; }
+  .accuracy { display:inline-block; background:rgba(255,215,0,.08); border:1px solid rgba(255,215,0,.3); padding:8px 20px; font-size:11px; letter-spacing:3px; color:var(--gold); text-transform:uppercase; margin-bottom:32px; }
+  .reset-btn { display:block; width:100%; background:transparent; border:1px solid #333; color:var(--muted); padding:14px; font-family:'Space Mono',monospace; font-size:11px; letter-spacing:2px; cursor:pointer; transition:all .2s; text-transform:uppercase; }
+  .reset-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .disclaimer { text-align:center; font-size:9px; color:#2a2a2a; margin-top:30px; letter-spacing:1px; line-height:1.9; }
+</style>
+</head>
+<body>
+<div class="box">
+
+  <div class="screen active" id="s-input">
+    <div class="header">
+      <div class="badge">⚡ NASA + Modi Ji + Elon Approved</div>
+      <div class="title">NEXT DAY<br>PREDICTOR</div>
+      <p class="sub">World's most overpowered day calculator.</p>
+    </div>
+    <div class="card">
+      <div class="qlabel">🗓️ Aaj konsa din hai?</div>
+      <div class="days-grid" id="daysGrid"></div>
+      <button class="go-btn" id="goBtn" onclick="startPrediction()">🔮 PREDICT KAR</button>
+    </div>
+  </div>
+
+  <div class="screen" id="s-loader">
+    <div class="loader-wrap">
+      <span class="spin-icon">⚙️</span>
+      <div class="step-text" id="stepText">Initializing...</div>
+      <div class="bar-track"><div class="bar-fill" id="barFill"></div></div>
+      <div class="pct-text" id="pctText">0%</div>
+    </div>
+  </div>
+
+  <div class="screen" id="s-result">
+    <div class="result-card">
+      <div class="result-stamp">🛸 TOP SECRET — EYES ONLY</div>
+      <div class="result-label">Kal ka din hoga...</div>
+      <div class="result-day" id="resultDay">—</div>
+      <div class="result-msg" id="resultMsg">—</div>
+      <div class="accuracy" id="accuracyBadge">Accuracy: —</div>
+      <button class="reset-btn" onclick="reset()">↺ Dobara Predict Karo</button>
+    </div>
+  </div>
+
+  <div class="disclaimer">
+    ⚠️ Humne NASA ko call kiya. Modi Ji se permission li. Elon ne tweet kiya.<br>
+    Phir bhi galat nikla toh — blame Mercury retrograde, we are not responsible.
+  </div>
+</div>
+
+<script>
+  const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+  const MSGS = {
+    "Tuesday":  "Matlab aaj ka struggle kal bhi jari rahega. Chai thandi hogi. Auto nahi aayega. All the best! ☕",
+    "Wednesday":"Beech ka din — na yahan ke na wahan ke. Maggi aur Netflix ka plan bana lo. 🍜",
+    "Thursday": "Kal thoda hope hai — weekend sirf 2 din door hai bhai. Bas ho jao! 💪",
+    "Friday":   "FRIDAY!! Bhai kal toh party mode ON! Lekin homework bhi hai, ignore karo usse. 🎉",
+    "Saturday": "WEEKEND AAYA! Subah 11 baje uthhna, maa bolegi 'kuch karo', tu soyega. Classic. 😴",
+    "Sunday":   "Sunday hai kal — mast din, but Sunday evening mein existential crisis toh aayegi hi. 🙂",
+    "Monday":   "MONDAY 💀 Bhai maafi maango kisi se bhi jo aaj se naraaz ho. Kal mushkil hai. Good luck."
+  };
+  const ACCURACIES = ["69.420%","99.99%","101% guaranteed","∞ accuracy","Elon ne bola: Yes","Modi Ji ne approve kiya","NASA certified","Beta, 100%","42% (it's always 42)"];
+  const STEPS = [
+    { text:"⏳ Processing ur results...", pct:8 },
+    { text:"📚 Finding the theory...", pct:16 },
+    { text:"🚀 Contacting NASA...", pct:24 },
+    { text:"📡 NASA on hold... please wait...", pct:32 },
+    { text:"🔍 Finding every way possible...", pct:42 },
+    { text:"💥 Results will blow ur mind...", pct:52 },
+    { text:"📞 Contacting Modi Ji...", pct:61 },
+    { text:"🗣️ Modi Ji: 'Mitron, ek minute...'", pct:69 },
+    { text:"🤖 Contacting Elon Musk...", pct:77 },
+    { text:"💸 Elon charging Rs.420 fee...", pct:84 },
+    { text:"🪐 Cross-checking with universe...", pct:91 },
+    { text:"✅ Results ready — GET READY!! 👀", pct:100 },
+  ];
+
+  let selectedDay = null;
+
+  const grid = document.getElementById('daysGrid');
+  DAYS.forEach(day => {
+    const btn = document.createElement('button');
+    btn.className = 'day-btn';
+    btn.textContent = day;
+    btn.onclick = () => {
+      selectedDay = day;
+      document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      document.getElementById('goBtn').classList.add('ready');
+    };
+    grid.appendChild(btn);
+  });
+
+  async function startPrediction() {
+    if (!selectedDay) return;
+    show('s-loader');
+    for (let i = 0; i < STEPS.length; i++) {
+      const s = STEPS[i];
+      document.getElementById('stepText').textContent = s.text;
+      document.getElementById('barFill').style.width = s.pct + '%';
+      document.getElementById('pctText').textContent = s.pct + '%';
+      const delay = i < 2 ? 900 : i < 6 ? 1100 : i < 9 ? 1300 : i < 11 ? 950 : 1500;
+      await sleep(delay);
+    }
+    const idx = DAYS.indexOf(selectedDay);
+    const nextDay = DAYS[(idx + 1) % 7];
+    document.getElementById('resultDay').textContent = nextDay;
+    document.getElementById('resultMsg').textContent = MSGS[nextDay];
+    document.getElementById('accuracyBadge').textContent = 'Accuracy: ' + ACCURACIES[Math.floor(Math.random() * ACCURACIES.length)];
+    show('s-result');
+  }
+
+  function show(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function reset() {
+    selectedDay = null;
+    document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('selected'));
+    document.getElementById('goBtn').classList.remove('ready');
+    document.getElementById('barFill').style.width = '0%';
+    show('s-input');
+  }
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+</script>
+</body>
+</html>
